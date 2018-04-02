@@ -1,0 +1,9 @@
+Building Talium
+
+See doc/readme-qt.rst for instructions on building Talium QT,
+the intended-for-end-users, nice-graphical-interface, reference
+implementation of Talium.
+
+See doc/build-*.txt for instructions on building Taliumd,
+the intended-for-services, no-graphical-interface, reference
+implementation of Talium.
