@@ -59,6 +59,10 @@ public:
     bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
     Qt::ItemFlags flags(const QModelIndex &index) const;
     /*@}*/
+	
+    /* Refreshes the data
+     */
+    void refresh(bool emitSignal = true);	
 
     /* Add an address to the model.
        Returns the added address on success, and an empty string otherwise.

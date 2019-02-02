@@ -51,6 +51,10 @@
         <file alias="onionblack">res/icons/onion-black.png</file>
         <file alias="browse">res/icons/browse.png</file>
         <file alias="trade">res/icons/trade.png</file>
+        <file alias="website">res/icons/website.png</file>
+        <file alias="bitcointalk">res/icons/bitcointalk.png</file>
+        <file alias="discord">res/icons/discord.png</file>
+        <file alias="explorer">res/icons/explorer.png</file>		
     </qresource>
     <qresource prefix="/icons/black">
         <file alias="connect_0">res/icons/black/connect0_16.png</file>

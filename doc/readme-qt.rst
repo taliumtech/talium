@@ -2,7 +2,7 @@ Talium-qt: Qt5 GUI for Talium
 ===============================
 
 Build instructions
-===================
+=================== 
 
 Debian
 -------
@@ -24,7 +24,7 @@ then execute the following:
     qmake
     make
 
-Alternatively, install Qt Creator and open the `Talium-qt.pro` file.
+Alternatively, install Qt Creator and open the `qt.pro` file.
 
 An executable named `Talium-qt` will be built.
 
@@ -46,21 +46,27 @@ Windows build instructions:
 Mac OS X
 --------
 
-- Download and install the `Qt Mac OS X SDK`_. It is recommended to also install Apple's Xcode with UNIX tools.
+- Download and install MacOS XCode and it's command line tools
 
-- Download and install `MacPorts`_.
+- Download and install `Homebrew`_.
 
 - Execute the following commands in a terminal to get the dependencies:
 
 ::
+    brew install qt autoconf automake libtool boost@1.59 berkeley-db@4 openssl miniupnpc gmp
 
-	sudo port selfupdate
-	sudo port install boost db48 miniupnpc
+    Optionally install qrencode (and set USE_QRCODE=1):
+    brew install qrencode
 
 - Open the .pro file in Qt Creator and build as normal (cmd-B)
 
-.. _`Qt Mac OS X SDK`: http://qt-project.org/downloads
-.. _`MacPorts`: http://www.macports.org/install.php
+It is recommended to build from CLI
+::    
+    cd talium
+    /usr/local/Cellar/qt/5.9.1/bin/qmake USE_UPNP=1 qt.pro
+    make
+
+.. _`Homebrew`: https://brew.sh/
 
 
 Build configuration options

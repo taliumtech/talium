@@ -91,6 +91,10 @@ private:
     QProgressDialog *progressDialog;
 
     QMenuBar *appMenuBar;
+	QAction *explorerAction;
+    QAction *pioAction;
+    QAction *bitcointalkAction;
+    QAction *chainAction;
     QAction *overviewAction;
     QAction *historyAction;
     QAction *quitAction;
@@ -105,6 +109,7 @@ private:
     QAction *exportAction;
     QAction *encryptWalletAction;
     QAction *backupWalletAction;
+    QAction *importPrivateKeyAction;
     QAction *changePassphraseAction;
     QAction *unlockWalletAction;
     QAction *lockWalletAction;
@@ -115,6 +120,8 @@ private:
     QAction *blockAction;
     QAction *TradingAction;
     QAction *showBackupsAction;
+	QAction* openConfEditorAction;
+    QAction* openMNConfEditorAction;
 
     QSystemTrayIcon *trayIcon;
     Notificator *notificator;
@@ -197,6 +204,12 @@ private slots:
     void optionsClicked();
     /** Show about dialog */
     void aboutClicked();
+	
+	void pioClicked();	
+    void bitcointalkClicked();
+    void chainClicked();
+    void explorerClicked();
+	
 #ifndef Q_OS_MAC
     /** Handle tray icon clicked */
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
@@ -211,6 +224,8 @@ private slots:
     void encryptWallet();
     /** Backup the wallet */
     void backupWallet();
+	/** Import a private key */
+    void importPrivateKey();
     /** Change encrypted wallet passphrase */
     void changePassphrase();
     /** Ask for passphrase to unlock wallet temporarily */

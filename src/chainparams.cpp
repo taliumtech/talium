@@ -102,7 +102,7 @@ public:
         strMasternodePaymentsPubKey = "0223cdad25cf94cca5dd7fdfe06d30736cf1c3c589c03c425fb92948c109e2eb7e";
         nPoolMaxTransactions = 3;
         strDarksendPoolDummyAddress = "TZEActenJpayEaoe1GPPW7ezdsjZWuxidY";
-        nLastPOWBlock = 0x7fffffff;
+        nLastPOWBlock = 465004;
         nPOSStartBlock = 250;
     }
 
@@ -157,7 +157,7 @@ public:
 
         convertSeeds(vFixedSeeds, pnTestnetSeed, ARRAYLEN(pnTestnetSeed), nDefaultPort);
 
-        nLastPOWBlock = 0x7fffffff;
+        nLastPOWBlock = 400000;
     }
     virtual Network NetworkID() const { return CChainParams::TESTNET; }
 };

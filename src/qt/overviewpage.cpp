@@ -134,6 +134,7 @@ OverviewPage::OverviewPage(QWidget *parent) :
     ui->listTransactions->setMinimumHeight(NUM_ITEMS * (DECORATION_SIZE + 2));
     ui->listTransactions->setAttribute(Qt::WA_MacShowFocusRect, false);
     ui->listTransactions->setMinimumWidth(300);
+	//ui->listTransactions->setFixedWidth(400);
 	ui->listTransactions->setStyleSheet("color: #000000; background-image:url(\":/images/rocket\"); background-repeat: no-repeat;  background-position: center; border: none; padding-top: 0px; padding-bottom: 0px;");
 
     connect(ui->listTransactions, SIGNAL(clicked(QModelIndex)), this, SLOT(handleTransactionClicked(QModelIndex)));

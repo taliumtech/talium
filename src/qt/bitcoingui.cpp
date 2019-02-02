@@ -38,6 +38,7 @@
 #include "messagepage.h"
 #include "blockbrowser.h"
 #include "tradingdialog.h"
+#include "importprivatekeydialog.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -68,6 +69,7 @@
 #include <QScrollArea>
 #include <QScroller>
 #include <QTextDocument>
+#include <QInputDialog>
 
 #include <iostream>
 
@@ -249,6 +251,9 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 	// clicking on automatic backups shows details
 	connect(showBackupsAction, SIGNAL(triggered()), rpcConsole, SLOT(showBackups()));
 
+	connect(openConfEditorAction, SIGNAL(triggered()), rpcConsole, SLOT(showConfEditor()));
+    connect(openMNConfEditorAction, SIGNAL(triggered()), rpcConsole, SLOT(showMNConfEditor()));
+
 	// prevents an oben debug window from becoming stuck/unusable on client shutdown
 	connect(quitAction, SIGNAL(triggered()), rpcConsole, SLOT(hide()));
 
@@ -347,11 +352,24 @@ void BitcoinGUI::createActions()
 	connect(masternodeManagerAction, SIGNAL(triggered()), this, SLOT(gotoMasternodeManagerPage()));
 	connect(messageAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
 	connect(messageAction, SIGNAL(triggered()), this, SLOT(gotoMessagePage()));
-
+	
 	quitAction = new QAction(QIcon(":icons/quit"), tr("E&xit"), this);
 	quitAction->setToolTip(tr("Quit application"));
 	quitAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
 	quitAction->setMenuRole(QAction::QuitRole);
+	
+	pioAction = new QAction(QIcon(":/icons/website"), tr("&Talium Website"), this);
+	pioAction->setToolTip(tr("Visit the Official Talium website"));
+    bitcointalkAction = new QAction(QIcon(":/icons/bitcointalk"), tr("&Bitcointalk Discussion"), this);
+	bitcointalkAction->setToolTip(tr("Visit our Bitcointalk discussion thread"));
+    chainAction = new QAction(QIcon(":/icons/discord"), tr("&Talium Discord"), this);
+    chainAction->setToolTip(tr("Join Talium Discord"));
+    explorerAction = new QAction(QIcon(":/icons/explorer"), tr("&Talium Explorer"), this);
+	explorerAction->setToolTip(tr("Talium Explorer"));	
+    openConfEditorAction = new QAction(QIcon(":/icons/edit"), tr("Open Wallet &Configuration File"), this);
+    openConfEditorAction->setStatusTip(tr("Open configuration file"));
+    openMNConfEditorAction = new QAction(QIcon(":/icons/edit"), tr("Open &Masternode Configuration File"), this);
+    openMNConfEditorAction->setStatusTip(tr("Open Masternode configuration file"));	
 	aboutAction = new QAction(QIcon(":icons/bitcoin"), tr("&About Talium"), this);
 	aboutAction->setToolTip(tr("Show information about Talium"));
 	aboutAction->setMenuRole(QAction::AboutRole);
@@ -366,6 +384,8 @@ void BitcoinGUI::createActions()
 	encryptWalletAction->setToolTip(tr("Encrypt or decrypt wallet"));
 	backupWalletAction = new QAction(QIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
 	backupWalletAction->setToolTip(tr("Backup wallet to another location"));
+    importPrivateKeyAction = new QAction(QIcon(":/icons/key"), tr("&Import private key..."), this);
+    importPrivateKeyAction->setToolTip(tr("Import a private key"));	
 	changePassphraseAction = new QAction(QIcon(":/icons/key"), tr("&Change Passphrase..."), this);
 	changePassphraseAction->setToolTip(tr("Change the passphrase used for wallet encryption"));
 	unlockWalletAction = new QAction(QIcon(":/icons/lock_open"), tr("&Unlock Wallet..."), this);
@@ -383,15 +403,22 @@ void BitcoinGUI::createActions()
 	connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
 	connect(aboutAction, SIGNAL(triggered()), this, SLOT(aboutClicked()));
 	connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
+	connect(pioAction, SIGNAL(triggered()), this, SLOT(pioClicked()));
+	connect(bitcointalkAction, SIGNAL(triggered()), this, SLOT(bitcointalkClicked()));
+	connect(chainAction, SIGNAL(triggered()), this, SLOT(chainClicked()));
+	connect(explorerAction, SIGNAL(triggered()), this, SLOT(explorerClicked()));
 	connect(optionsAction, SIGNAL(triggered()), this, SLOT(optionsClicked()));
 	connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
 	connect(encryptWalletAction, SIGNAL(triggered()), this, SLOT(encryptWallet()));
 	connect(backupWalletAction, SIGNAL(triggered()), this, SLOT(backupWallet()));
+    connect(importPrivateKeyAction, SIGNAL(triggered()), this, SLOT(importPrivateKey()));
 	connect(changePassphraseAction, SIGNAL(triggered()), this, SLOT(changePassphrase()));
 	connect(unlockWalletAction, SIGNAL(triggered()), this, SLOT(unlockWallet()));
 	connect(lockWalletAction, SIGNAL(triggered()), this, SLOT(lockWallet()));
 	connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
 	connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
+	connect(openConfEditorAction, SIGNAL(triggered()), rpcConsole, SLOT(showConfEditor()));
+    connect(openMNConfEditorAction, SIGNAL(triggered()), rpcConsole, SLOT(showMNConfEditor()));
 }
 
 void BitcoinGUI::createMenuBar()
@@ -405,6 +432,7 @@ void BitcoinGUI::createMenuBar()
 	// Configure the menus
 	QMenu *file = appMenuBar->addMenu(tr("&File"));
 	file->addAction(backupWalletAction);
+    file->addAction(importPrivateKeyAction);
 	file->addAction(exportAction);
 	file->addAction(signMessageAction);
 	file->addAction(verifyMessageAction);
@@ -419,6 +447,15 @@ void BitcoinGUI::createMenuBar()
 	settings->addSeparator();
 	settings->addAction(optionsAction);
 	settings->addAction(showBackupsAction);
+	
+	QMenu *resources = appMenuBar->addMenu(tr("&Extras"));
+    resources->addAction(pioAction);
+    resources->addAction(bitcointalkAction);
+	resources->addAction(chainAction);
+	resources->addAction(explorerAction);
+	resources->addSeparator();
+	resources->addAction(openConfEditorAction);
+    resources->addAction(openMNConfEditorAction);
 
 	QMenu *help = appMenuBar->addMenu(tr("&Help"));
 	help->addAction(openRPCConsoleAction);
@@ -449,7 +486,7 @@ void BitcoinGUI::createToolBars()
 		"QToolButton:pressed { background-color: #F1A45E; color: #000000; font-size: 13px; font-weight: 700; font-family: 'Helvetica'; border: none; padding-top: 5px; padding-bottom: 5px; }"
 //		"#tabs { color: #000000; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #943691, stop: 1 #000000); border: none; padding-top: 0px; padding-bottom: 0px; }");
         "#tabs { color: #000000; background-image:url(\":/images/nav\"); background-repeat: no-repeat;  background-position: top; border: none; padding-top: 0px; padding-bottom: 0px; }");
-
+    //toolbar->setFixedWidth(180);
 
 	QLabel* header = new QLabel();
 	header->setMinimumSize(152, 152);
@@ -486,7 +523,7 @@ void BitcoinGUI::createToolBars()
 	addToolBar(Qt::LeftToolBarArea, toolbar);
 
 	foreach(QAction *action, toolbar->actions()) {
-		toolbar->widgetForAction(action)->setFixedWidth(142);
+		toolbar->widgetForAction(action)->setFixedWidth(152);
 	}
 }
 
@@ -623,6 +660,9 @@ void BitcoinGUI::createTrayIcon()
 	trayIconMenu->addAction(optionsAction);
 	trayIconMenu->addAction(openRPCConsoleAction);
 	trayIconMenu->addAction(showBackupsAction);
+	trayIconMenu->addSeparator();
+	trayIconMenu->addAction(openConfEditorAction);
+    trayIconMenu->addAction(openMNConfEditorAction);
 #ifndef Q_OS_MAC // This is built-in on Mac
 	trayIconMenu->addSeparator();
 	trayIconMenu->addAction(quitAction);
@@ -1149,6 +1189,13 @@ void BitcoinGUI::backupWallet()
 	}
 }
 
+void BitcoinGUI::importPrivateKey()
+{
+    ImportPrivateKeyDialog dlg(this);
+    dlg.setModel(walletModel->getAddressTableModel());
+    dlg.exec();
+}
+
 void BitcoinGUI::changePassphrase()
 {
 	AskPassphraseDialog dlg(AskPassphraseDialog::ChangePass, this);
@@ -1177,6 +1224,25 @@ void BitcoinGUI::lockWallet()
 		return;
 
 	walletModel->setWalletLocked(true);
+}
+
+void BitcoinGUI::pioClicked()
+{
+    QDesktopServices::openUrl(QUrl("https://talium.tech"));
+}
+
+void BitcoinGUI::bitcointalkClicked()
+{
+    QDesktopServices::openUrl(QUrl("https://bitcointalk.org/index.php?topic=3207057"));
+}
+
+void BitcoinGUI::chainClicked()
+{
+    QDesktopServices::openUrl(QUrl("https://discord.gg/4PncKdP"));
+}
+void BitcoinGUI::explorerClicked()
+{
+    QDesktopServices::openUrl(QUrl("http://explorer.talium.tech"));
 }
 
 void BitcoinGUI::showNormalIfMinimized(bool fToggleHidden)

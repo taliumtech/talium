@@ -7,6 +7,7 @@
 #include "peertablemodel.h"
 
 #include <QWidget>
+#include <QCompleter>
 
 namespace Ui {
     class RPCConsole;
@@ -93,6 +94,10 @@ public slots:
     void banSelectedNode(int bantime);
     /** Unban a selected node on the Bans tab */
     void unbanSelectedNode();
+	/** Open external (default) editor with talium.conf */
+    void showConfEditor();
+    /** Open external (default) editor with masternode.conf */
+    void showMNConfEditor();
     /** Show folder with wallet backups in default browser */
     void showBackups();
 signals:
@@ -124,6 +129,7 @@ private:
     NodeId cachedNodeid;
     QMenu *peersTableContextMenu;
     QMenu *banTableContextMenu;
+    QCompleter *autoCompleter;
 
 };
 

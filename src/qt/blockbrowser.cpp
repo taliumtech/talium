@@ -332,13 +332,13 @@ BlockBrowser::BlockBrowser(QWidget *parent) :
     ui->setupUi(this);
 
     setFixedSize(400, 420);
-        
+
     connect(ui->blockButton, SIGNAL(pressed()), this, SLOT(blockClicked()));
     connect(ui->txButton, SIGNAL(pressed()), this, SLOT(txClicked()));
 }
 
 void BlockBrowser::updateExplorer(bool block)
-{    
+{
     if(block)
     {
         ui->heightLabel->show();
@@ -379,36 +379,49 @@ void BlockBrowser::updateExplorer(bool block)
         ui->merkleBox->setText(QMerkle);
         ui->bitsBox->setText(QBits);
         ui->nonceBox->setText(QNonce);
-        ui->timeBox->setText(QTime);     
+        ui->timeBox->setText(QTime);
         ui->hardBox->setText(QHardness);
-    } 
-    
+    }
+
     if(block == false) {
-        ui->txID->show();
-        ui->txLabel->show();
-        ui->valueLabel->show();
-        ui->valueBox->show();
-        ui->inputLabel->show();
-        ui->inputBox->show();
-        ui->outputLabel->show();
-        ui->outputBox->show();
-        ui->feesLabel->show();
-        ui->feesBox->show();
+        // Check if the transaction exists 
         std::string txid = ui->txBox->text().toUtf8().constData();
-        double value = getTxTotalValue(txid);
-        double fees = getTxFees(txid);
-        std::string outputs = getOutputs(txid);
-        std::string inputs = getInputs(txid);
-        QString QValue = QString::number(value, 'f', 6);
-        QString QID = QString::fromUtf8(txid.c_str());
-        QString QOutputs = QString::fromUtf8(outputs.c_str());
-        QString QInputs = QString::fromUtf8(inputs.c_str());
-        QString QFees = QString::number(fees, 'f', 6);
-        ui->valueBox->setText(QValue + " TLM");
-        ui->txID->setText(QID);
-        ui->outputBox->setText(QOutputs);
-        ui->inputBox->setText(QInputs);
-        ui->feesBox->setText(QFees + " TLM");
+        uint256 hash; 
+        hash.SetHex(txid); 
+         
+        CTransaction tx; 
+        uint256 hashBlock = 0; 
+        if (GetTransaction(hash, tx, hashBlock)) 
+        { 
+            ui->txID->show();
+            ui->txLabel->show();
+            ui->valueLabel->show();
+            ui->valueBox->show();
+            ui->inputLabel->show();
+            ui->inputBox->show();
+            ui->outputLabel->show();
+            ui->outputBox->show();
+            ui->feesLabel->show();
+            ui->feesBox->show();
+            double value = getTxTotalValue(txid);
+            double fees = getTxFees(txid);
+            std::string outputs = getOutputs(txid);
+            std::string inputs = getInputs(txid);
+            QString QValue = QString::number(value, 'f', 6);
+            QString QID = QString::fromUtf8(txid.c_str());
+            QString QOutputs = QString::fromUtf8(outputs.c_str());
+            QString QInputs = QString::fromUtf8(inputs.c_str());
+            QString QFees = QString::number(fees, 'f', 6);
+            ui->valueBox->setText(QValue + " IC");
+            ui->txID->setText(QID);
+            ui->outputBox->setText(QOutputs);
+            ui->inputBox->setText(QInputs);
+            ui->feesBox->setText(QFees + " IC");
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("Transaction not found"), tr("The transaction has not been found."), QMessageBox::Ok);
+        }
     }
 }
 

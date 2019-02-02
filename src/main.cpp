@@ -95,7 +95,7 @@ namespace {
 
 	struct CMainSignals {
 		// Notifies listeners of updated transaction data (passing hash, transaction, and optionally the block it is found in.
-		boost::signals2::signal<void(const CTransaction &, const CBlock *, bool)> SyncTransaction;
+        boost::signals2::signal<void (const CTransaction &, const CBlock *, bool, bool)> SyncTransaction;
 		// Notifies listeners of an erased transaction (currently disabled, requires transaction replacement).
 		boost::signals2::signal<void(const uint256 &)> EraseTransaction;
 		// Notifies listeners of an updated transaction without new data (for now: a coinbase potentially becoming visible).
@@ -110,7 +110,7 @@ namespace {
 }
 
 void RegisterWallet(CWalletInterface* pwalletIn) {
-	g_signals.SyncTransaction.connect(boost::bind(&CWalletInterface::SyncTransaction, pwalletIn, _1, _2, _3));
+    g_signals.SyncTransaction.connect(boost::bind(&CWalletInterface::SyncTransaction, pwalletIn, _1, _2, _3, _4));
 	g_signals.EraseTransaction.connect(boost::bind(&CWalletInterface::EraseFromWallet, pwalletIn, _1));
 	g_signals.UpdatedTransaction.connect(boost::bind(&CWalletInterface::UpdatedTransaction, pwalletIn, _1));
 	g_signals.SetBestChain.connect(boost::bind(&CWalletInterface::SetBestChain, pwalletIn, _1));
@@ -124,7 +124,7 @@ void UnregisterWallet(CWalletInterface* pwalletIn) {
 	g_signals.SetBestChain.disconnect(boost::bind(&CWalletInterface::SetBestChain, pwalletIn, _1));
 	g_signals.UpdatedTransaction.disconnect(boost::bind(&CWalletInterface::UpdatedTransaction, pwalletIn, _1));
 	g_signals.EraseTransaction.disconnect(boost::bind(&CWalletInterface::EraseFromWallet, pwalletIn, _1));
-	g_signals.SyncTransaction.disconnect(boost::bind(&CWalletInterface::SyncTransaction, pwalletIn, _1, _2, _3));
+	g_signals.SyncTransaction.disconnect(boost::bind(&CWalletInterface::SyncTransaction, pwalletIn, _1, _2, _3, _4));
 }
 
 void UnregisterAllWallets() {
@@ -136,8 +136,8 @@ void UnregisterAllWallets() {
 	g_signals.SyncTransaction.disconnect_all_slots();
 }
 
-void SyncWithWallets(const CTransaction &tx, const CBlock *pblock, bool fConnect) {
-	g_signals.SyncTransaction(tx, pblock, fConnect);
+void SyncWithWallets(const CTransaction &tx, const CBlock *pblock, bool fConnect, bool fFixSpentCoins) {
+    g_signals.SyncTransaction(tx, pblock, fConnect, fFixSpentCoins);
 }
 
 void ResendWalletTransactions(bool fForce) {
@@ -719,7 +719,7 @@ int64_t GetMinFee(const CTransaction& tx, unsigned int nBytes, bool fAllowFree, 
 
 
 bool AcceptToMemoryPool(CTxMemPool& pool, CTransaction &tx, bool fLimitFree,
-	bool* pfMissingInputs, bool fRejectInsaneFee, bool ignoreFees)
+                        bool* pfMissingInputs, bool fRejectInsaneFee, bool ignoreFees, bool fFixSpentCoins)
 {
 	AssertLockHeld(cs_main);
 	if (pfMissingInputs)
@@ -885,7 +885,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CTransaction &tx, bool fLimitFree,
 	pool.addUnchecked(hash, tx);
 	setValidatedTx.insert(hash);
 
-	SyncWithWallets(tx, NULL);
+    SyncWithWallets(tx, NULL, true, fFixSpentCoins);
 
 	LogPrint("mempool", "AcceptToMemoryPool : accepted %s (poolsz %u)\n",
 		hash.ToString(),
@@ -1354,6 +1354,21 @@ static CBigNum GetProofOfStakeLimit(int nHeight)
 	return bnProofOfStakeLimit;
 }
 
+// Dev Payment
+
+string getDevAddress(int nHeight) {
+	int addrId = nHeight % 4;
+	if (addrId == 0) {
+		return "TDRGidJyEh5m6vW4FypeoRYraeBTvv3Rck";
+	} else if (addrId == 1) {
+		return "TPvXSa8tPz9cj1EM6QXAFvfqRm4qg6k2RV";
+	} else if (addrId == 2) {
+		return "TVDkwtWuwe3ZXx3kQTnETjy95RbETutTmx";
+	} else {
+		return "TPatvGLMfR2Yny6XAsZGJzLT897XTBBoUH";
+	}
+}
+
 // Miner's PoW block rewards:
 int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 {
@@ -1468,49 +1483,87 @@ int64_t GetProofOfStakeReward(int nHeight, const CBlockIndex* pindexPrev, int64_
 
 	if (nHeight < YEARLY_BLOCKCOUNT)						// 1st year
 		nSubsidy = STATIC_POS_REWARD;
-	else if (nHeight < (2 * YEARLY_BLOCKCOUNT))				// 2nd year
+	else if (nHeight < 465000 && nHeight >= YEARLY_BLOCKCOUNT)	// 2nd year	
 		nSubsidy = STATIC_POS_REWARD * 0.95;
-	else if (nHeight < (3 * YEARLY_BLOCKCOUNT))				// 3rd year
-		nSubsidy = STATIC_POS_REWARD * 0.9025;
-	else if (nHeight < (4 * YEARLY_BLOCKCOUNT))				// 4th year
-		nSubsidy = STATIC_POS_REWARD * 0.8574;
-	else if (nHeight < (5 * YEARLY_BLOCKCOUNT))				// 5th year
-		nSubsidy = STATIC_POS_REWARD * 0.8145;
-	else if (nHeight < (6 * YEARLY_BLOCKCOUNT))				// 6th year
-		nSubsidy = STATIC_POS_REWARD * 0.7738;
-	else if (nHeight < (7 * YEARLY_BLOCKCOUNT))				// 7th year
-		nSubsidy = STATIC_POS_REWARD * 0.7351;
-	else if (nHeight < (8 * YEARLY_BLOCKCOUNT))				// 8th year
-		nSubsidy = STATIC_POS_REWARD * 0.6983;
-	else if (nHeight < (9 * YEARLY_BLOCKCOUNT))				// 9th year
-		nSubsidy = STATIC_POS_REWARD * 0.6634;
-	else if (nHeight < (10 * YEARLY_BLOCKCOUNT))			// 10th year
-		nSubsidy = STATIC_POS_REWARD * 0.6302;
-	else if (nHeight < (11 * YEARLY_BLOCKCOUNT))			// 11th year
-		nSubsidy = STATIC_POS_REWARD * 0.5987;
-	else if (nHeight < (12 * YEARLY_BLOCKCOUNT))			// 12th year
-		nSubsidy = STATIC_POS_REWARD * 0.5688;
-	else if (nHeight < (13 * YEARLY_BLOCKCOUNT))			// 13th year
-		nSubsidy = STATIC_POS_REWARD * 0.5404;
-	else if (nHeight < (14 * YEARLY_BLOCKCOUNT))			// 14th year
-		nSubsidy = STATIC_POS_REWARD * 0.5133;
-	else if (nHeight < (15 * YEARLY_BLOCKCOUNT))			// 15th year
-		nSubsidy = STATIC_POS_REWARD * 0.4877;
-	else if (nHeight < (16 * YEARLY_BLOCKCOUNT))			// 16th year
-		nSubsidy = STATIC_POS_REWARD * 0.4633;
-	else if (nHeight < (17 * YEARLY_BLOCKCOUNT))			// 17th year
-		nSubsidy = STATIC_POS_REWARD * 0.4401;
-	else if (nHeight < (18 * YEARLY_BLOCKCOUNT))			// 18th year
-		nSubsidy = STATIC_POS_REWARD * 0.4181;
-	else if (nHeight < (19 * YEARLY_BLOCKCOUNT))			// 19th year
-		nSubsidy = STATIC_POS_REWARD * 0.3972;
-	else if (nHeight < (20 * YEARLY_BLOCKCOUNT))			// 20th year
-		nSubsidy = STATIC_POS_REWARD * 0.3774;
-	else													// After 20th year reward is Same.
-		nSubsidy = 1 * COIN;	
-	
+	else if (nHeight < 500000 && nHeight >= 465000)			// New Reward 0.6
+		nSubsidy = STATIC_POS_REWARD * 0.3;
+	else if (nHeight < 600000 && nHeight >= 500000)			// New Reward 0.55
+		nSubsidy = STATIC_POS_REWARD * 0.275;
+	else if (nHeight < 700000 && nHeight >= 600000)			// New Reward 0.5
+		nSubsidy = STATIC_POS_REWARD * 0.25;
+	else if (nHeight < 800000 && nHeight >= 700000)			// New Reward 0.45
+		nSubsidy = STATIC_POS_REWARD * 0.225;
+	else if (nHeight < 900000 && nHeight >= 800000)			// New Reward 0.4
+		nSubsidy = STATIC_POS_REWARD * 0.2;
+	else if (nHeight < 1000000 && nHeight >= 900000)			// New Reward 0.35
+		nSubsidy = STATIC_POS_REWARD * 0.175;
+	else if (nHeight < 1100000 && nHeight >= 1000000)			// New Reward 0.3
+		nSubsidy = STATIC_POS_REWARD * 0.15;
+	else if (nHeight < 1200000 && nHeight >= 1100000)			// New Reward 0.25
+		nSubsidy = STATIC_POS_REWARD * 0.125;
+	else if (nHeight < 1500000 && nHeight >= 1200000)			// New Reward 0.2
+		nSubsidy = STATIC_POS_REWARD * 0.1;
+	else if (nHeight < 2000000 && nHeight >= 1500000)			// New Reward 0.15
+		nSubsidy = STATIC_POS_REWARD * 0.075;
+	else if (nHeight >= 2000000)								// New Reward 0.1
+		nSubsidy = STATIC_POS_REWARD * 0.05;
+	else													// Fallback
+		nSubsidy = 0.05 * COIN;	
+		
     if (nHeight < 100) // Instamining Protection
         nSubsidy = 0 * COIN;
+
+// Lucky PoS/MN blocks:
+	
+    if (nHeight == 470000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 480000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 490000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 500000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 550000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 600000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 650000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 700000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 750000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 800000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 850000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 900000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 950000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1000000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1050000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1100000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1150000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1200000) 
+        nSubsidy = 500 * COIN;
+	else if (nHeight == 1250000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1300000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1350000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1400000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1450000) 
+        nSubsidy = 500 * COIN;
+    else if (nHeight == 1500000) 
+        nSubsidy = 500 * COIN;
+
 	
 	return nSubsidy + nFees;
 }
@@ -1554,7 +1607,12 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
 	if (bnNew <= 0 || bnNew > bnTargetLimit)
 		bnNew = bnTargetLimit;
 
-	return bnNew.GetCompact();
+	if (pindexLast->nHeight >= 465000 && pindexLast->nHeight <= 465010) {
+		return bnTargetLimit.GetCompact();
+	} else {
+		return bnNew.GetCompact();
+	}
+
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits)
@@ -2609,80 +2667,81 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) c
 		if (fDebug) { LogPrintf("CheckBlock() : skipping transaction locking checks\n"); }
 	}
 
+    // ----------- masternode payments -----------
 
+    bool MasternodePayments = false;
+    bool fIsInitialDownload = IsInitialBlockDownload();
 
-	// ----------- masternode payments -----------
+    if(nTime > START_MASTERNODE_PAYMENTS) MasternodePayments = true;
+    if (!fIsInitialDownload)
+    {
+        if(MasternodePayments)
+        {
+            LOCK2(cs_main, mempool.cs);
 
-	bool MasternodePayments = false;
-	bool fIsInitialDownload = IsInitialBlockDownload();
-
-	if (nTime > START_MASTERNODE_PAYMENTS) MasternodePayments = true;
-	if (!fIsInitialDownload)
-	{
-		if (MasternodePayments)
-		{
-			LOCK2(cs_main, mempool.cs);
-
-			CBlockIndex *pindex = pindexBest;
-			if (IsProofOfStake() && pindex != NULL) {
-				if (pindex->GetBlockHash() == hashPrevBlock) {
-					// If we don't already have its previous block, skip masternode payment step
-					CAmount masternodePaymentAmount;
-					for (int i = vtx[1].vout.size(); i-- > 0; ) {
-						masternodePaymentAmount = vtx[1].vout[i].nValue;
-						break;
-					}
-					bool foundPaymentAmount = false;
-					bool foundPayee = false;
-					bool foundPaymentAndPayee = false;
-
-					CScript payee;
-					CTxIn vin;
-					if (!masternodePayments.GetBlockPayee(pindexBest->nHeight + 1, payee, vin) || payee == CScript()) {
-						foundPayee = true; //doesn't require a specific payee
-						foundPaymentAmount = true;
-						foundPaymentAndPayee = true;
-						if (fDebug) { LogPrintf("CheckBlock() : Using non-specific masternode payments %d\n", pindexBest->nHeight + 1); }
-					}
-
-					for (unsigned int i = 0; i < vtx[1].vout.size(); i++) {
-						if (vtx[1].vout[i].nValue == masternodePaymentAmount)
-							foundPaymentAmount = true;
-						if (vtx[1].vout[i].scriptPubKey == payee)
-							foundPayee = true;
-						if (vtx[1].vout[i].nValue == masternodePaymentAmount && vtx[1].vout[i].scriptPubKey == payee)
-							foundPaymentAndPayee = true;
-					}
-
-					CTxDestination address1;
-					ExtractDestination(payee, address1);
-					CTaliumAddress address2(address1);
-
-					if (!foundPaymentAndPayee) {
-						if (fDebug) { LogPrintf("CheckBlock() : Couldn't find masternode payment(%d|%d) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight + 1); }
-						return DoS(100, error("CheckBlock() : Couldn't find masternode payment or payee"));
-					}
-					else {
-						LogPrintf("CheckBlock() : Found payment(%d|%d) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight + 1);
-					}
-				}
-				else {
-					if (fDebug) { LogPrintf("CheckBlock() : Skipping masternode payment check - nHeight %d Hash %s\n", pindexBest->nHeight + 1, GetHash().ToString().c_str()); }
-				}
-			}
-			else {
-				if (fDebug) { LogPrintf("CheckBlock() : pindex is null, skipping masternode payment check\n"); }
-			}
-		}
-		else {
-			if (fDebug) { LogPrintf("CheckBlock() : skipping masternode payment checks\n"); }
-		}
-	}
-	else {
-		if (fDebug) { LogPrintf("CheckBlock() : Is initial download, skipping masternode payment check %d\n", pindexBest->nHeight + 1); }
-	}
-
-
+            CBlockIndex *pindex = pindexBest;
+            if(IsProofOfStake() && pindex != NULL){
+                if(pindex->GetBlockHash() == hashPrevBlock){
+                    // If we don't already have its previous block, skip masternode payment step
+                    CAmount masternodePaymentAmount;
+                    for (int i = vtx[1].vout.size(); i--> 0; ) {
+                        masternodePaymentAmount = vtx[1].vout[i].nValue;
+                        break;
+                    }
+                    bool foundPaymentAmount = false;
+                    bool foundPayee = false;
+                    bool foundPaymentAndPayee = false;
+                    bool foundDevFee = true;
+                    CScript payee;
+                    CTxIn vin;
+                    if(!masternodePayments.GetBlockPayee(pindexBest->nHeight+1, payee, vin) || payee == CScript()){
+                        foundPayee = true; //doesn't require a specific payee
+                        foundPaymentAmount = true;
+                        foundPaymentAndPayee = true;
+                        if(fDebug) { LogPrintf("CheckBlock() : Using non-specific masternode payments %d\n", pindexBest->nHeight+1); }
+                    }
+                    for (unsigned int i = 0; i < vtx[1].vout.size(); i++) {
+                        if(vtx[1].vout[i].nValue == masternodePaymentAmount )
+                            foundPaymentAmount = true;
+                        if(vtx[1].vout[i].scriptPubKey == payee )
+                            foundPayee = true;
+                        if(vtx[1].vout[i].nValue == masternodePaymentAmount && vtx[1].vout[i].scriptPubKey == payee)
+                            foundPaymentAndPayee = true;
+                    }
+                    // devfee
+                    if (pindex->nHeight >= 465000) {
+                        CTaliumAddress devRewardAddress(getDevAddress(pindex->nHeight + 1));
+                        CScript devRewardscriptPubKey = GetScriptForDestination(devRewardAddress.Get());
+                        foundDevFee = false;
+                        for (unsigned int i = 0; i < vtx[1].vout.size(); i++) {
+                            if(vtx[1].vout[i].scriptPubKey == devRewardscriptPubKey )
+                                foundDevFee = true;
+                        }
+                    }
+                    CTxDestination address1;
+                    ExtractDestination(payee, address1);
+                    CTaliumAddress address2(address1);
+                    if (!foundDevFee) {
+                        if(fDebug) { LogPrintf("CheckBlock() : Couldn't find devfee payment(%d|%d) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight+1); }
+                        return DoS(100, error("CheckBlock() : Couldn't find devfee payment or payee"));
+                    } else if(!foundPaymentAndPayee) {
+                        if(fDebug) { LogPrintf("CheckBlock() : Couldn't find masternode payment(%d|%d) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight+1); }
+                        return DoS(100, error("CheckBlock() : Couldn't find masternode payment or payee"));
+                    } else {
+                        LogPrintf("CheckBlock() : Found payment(%d|%d) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight+1);
+                    }
+                } else {
+                    if(fDebug) { LogPrintf("CheckBlock() : Skipping masternode payment check - nHeight %d Hash %s\n", pindexBest->nHeight+1, GetHash().ToString().c_str()); }
+                }
+            } else {
+                if(fDebug) { LogPrintf("CheckBlock() : pindex is null, skipping masternode payment check\n"); }
+            }
+        } else {
+            if(fDebug) { LogPrintf("CheckBlock() : skipping masternode payment checks\n"); }
+        }
+    } else {
+        if(fDebug) { LogPrintf("CheckBlock() : Is initial download, skipping masternode payment check %d\n", pindexBest->nHeight+1); }
+    }
 
 	// Check transactions
 	BOOST_FOREACH(const CTransaction& tx, vtx)
@@ -4634,6 +4693,11 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
 
 int64_t GetMasternodePayment(int nHeight, int64_t blockValue)
 {
-	int64_t ret = blockValue / 100 * 75;
+	int64_t ret = 0;
+	if (nHeight >= 465000)	{					
+		ret = blockValue / 100 * 85;
+	} else {
+		ret = blockValue / 100 * 75;	
+	}
 	return ret;
 }

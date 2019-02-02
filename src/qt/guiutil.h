@@ -93,6 +93,12 @@ namespace GUIUtil
     
     // Browse backup folder
     void showBackups();
+	
+	// Open talium.conf
+	void openConfigfile();
+
+	// Open masternode.conf
+	void openMNConfigfile();
 
     // Replace invalid default fonts with known good ones
     void SubstituteFonts(const QString& language);
